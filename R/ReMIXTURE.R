@@ -226,8 +226,31 @@ ReMIXTURE <- R6::R6Class(
 
 
     plot_maps = function(){
-      #check
-      #produce plots
+            #produce plots
+      cnormed <- data.table::copy(private$counts)[,prop:=count/sum(count),by=.(p1)]
+      cnormed<-cnormed[p1!=p2][order(prop)]
+
+      coords<-private$it
+      coords[,size:=counts[p1==region & p2==region]$count,by=region]
+      coords[,size:=size %>% scale_between(2,7)]
+      coords <- coords[!is.na(size)]
+
+      cnormed[,id:=1:.N]
+      cnormed <- coords[,.(p1=region,x1=x,y1=y)][cnormed,on="p1"]
+      cnormed <- coords[,.(p2=region,x2=x,y2=y)][cnormed,on="p2"]
+      # Plot the view of the globe.
+      world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+            p <- ggplot(data = world) +
+        geom_sf(lwd=0.05)
+
+            map<-  p+
+              geom_curve(data = cnormed, aes(x = x1, y = y1, xend = x2, yend = y2, size = prop),
+                         curvature = 0.5,
+                         alpha = 0.5,
+                         lineend = "round")+
+              geom_point(aes(x=x,y=y, size = size, colour = col),data= coords)+
+              theme(legend.position = "none")
+            return(map)
     }
   ),
 
