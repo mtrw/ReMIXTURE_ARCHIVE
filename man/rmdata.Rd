@@ -21,7 +21,7 @@ A vector of integers:
 rmdata
 }
 \description{
-Just some shit
+Just some stuff
    I put in a vector
 }
 \keyword{datasets}

@@ -1,6 +1,6 @@
 #' rmdata
 #'
-#' Just some shit
+#' Just some stuff
 #'    I put in a vector
 #'
 #' @format A vector of integers:

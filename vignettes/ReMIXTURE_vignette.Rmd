@@ -1,5 +1,5 @@
 ---
-title: "ReMIXTURE_vignette"
+title: "ReMIXTURE vignette"
 author: "Tim"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -25,7 +25,7 @@ library(ReMIXTURE)
 
 ```{r,echo=T}
 # Look!
-sayname(10)
+#sayname(10)
 
 # Also, this package has this great dataset:
 rmdata

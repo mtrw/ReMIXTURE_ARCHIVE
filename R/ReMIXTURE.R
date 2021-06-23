@@ -14,34 +14,20 @@
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
-#' sayname
-#'
-#' Says the name of the intended future of this package
-#'
-#' @section Warning:
-#' Does nothing interesting.
-#'
-#' @param x Anything printable.
-#' @return Nothing. Just prints nothing interesting.
-#' @examples
-#' sayname("Humboldt")
-#' @export
-sayname <- function(x="nothing") {
-  print(paste0("This is ReMIXTURE: ",x))
-  print(head(melt(iris)))
-}
 
 
+
+### FUNCTION ALIASES #####################################################
 `%>%` <- magrittr::`%>%`
 `data.table` <- data.table::`data.table`
-
-
 
 ### IMPORTED FUNCTIONS #####################################################
 ce <- function(...){   cat(paste0(...,"\n"), sep='', file=stderr()) %>% eval(envir = globalenv() ) %>% invisible() }
 nu <-function(x){
   unique(x) %>% length
 }
+
+
 scale_between <- function(x,lower,upper){
   if(all(x==mean(x,na.rm=T))) return(rep(mean(c(lower,upper),na.rm=T),length(x)))
   ( x - min(x,na.rm=T) ) / (max(x,na.rm=T)-min(x,na.rm=T)) * (upper-lower) + lower
@@ -75,31 +61,45 @@ swap <- function(vec,matches,names,na.replacement=NA){
 null_plot <- function(x,y,xlab=NA,ylab=NA,...){
   plot(NULL,xlim=range(x,na.rm=T),ylim=range(y,na.rm=T),xlab=xlab,ylab=ylab,...)
 }
+
 ############################################################################
 
 ###################################################################################################################################
 ##################################################### Main Class ##################################################################
 ###################################################################################################################################
 
+
+#' ReMixture
+#'
+#' Says the name of the intended future of this package
+#'
+#' @section Warning:
+#' Does nothing interesting.
+#'
+#' @param x Anything printable.
+#' @return Nothing. Just prints nothing interesting.
+#' @examples
+#' print("Hello!")
+#' @export
 ReMIXTURE <- R6::R6Class(
 
   ################# Public ################
   public = list(
     initialize = function(distance_matrix,info_table=NULL){ #constructor, overrides self$new
-      browser()
+      #browser()
 
       if( #lower triangular dm --- fill
         all(distance_matrix[lower.tri(distance_matrix,diag=F)]==0) & !all(distance_matrix[upper.tri(distance_matrix,diag=F)]==0)
       ){
         warning("Detected a probable triangular distance matrix as input. Zero entries in lower triangle will be filled based on the upper triangle")
-        dm[lower.tri(dm)] <- dm[upper.tri(dm)]
+        dm <- fill_lower_from_upper(dm)
       }
 
       if( #upper triangular dm --- fill
         !all(distance_matrix[lower.tri(distance_matrix,diag=F)]==0) & all(distance_matrix[upper.tri(distance_matrix,diag=F)]==0)
       ){
         warning("Detected a probable triangular distance matrix as input. Zero entries in upper triangle will be filled based on the lower triangle")
-        dm[upper.tri(dm)] <- dm[lower.tri(dm)]
+        dm <- fill_upper_from_lower(dm)
       }
 
 
@@ -109,12 +109,15 @@ ReMIXTURE <- R6::R6Class(
       private$validate_dm(distance_matrix)
       if( !is.null(info_table) ){
         private$validate_it(info_table)
+        private$it <- info_table
+        #if colour not present, auto-fill
+        if( is.null(info_table$col) ){ # No colours provided --- assign!
+          warning("No colour column in info_table provided. Colour will be manually added.")
+          info_table[ , col := replace_levels_with_colours(region) ]
+        }
       } else {
         warning("No info table provided. Must be inputted manually with $info_table() before $run() can be called.")
       }
-
-      private$dm <- distance_matrix
-
 
     },
 
@@ -256,8 +259,10 @@ ReMIXTURE <- R6::R6Class(
         stop("Self-distance (i.e. distance matrix diagonals) should always be zero")
       }
 
-      #check rows and columns are the same
-      sapply(1:nrow(in_dm),function(r) { all(in_dm[r,]==in_dm[,r]) })
+      #check rows and columns are the same in_dm <- N
+      if ( !sapply(1:nrow(in_dm),function(r) { all(in_dm[r,]==in_dm[,r]) }) %>% all ){
+        stop("Distance matrix is not diagonal")
+      }
 
       #check groups have decent numbers
       #check rowsnames/colnames exist and rownames==colnames
@@ -267,15 +272,17 @@ ReMIXTURE <- R6::R6Class(
       if( !all(colnames(in_dm) == colnames(in_dm)) ) {
         stop( "Column and row names of input matrix must be the same" )
       }
-
-      return(TRUE)
     },
     validate_it = function(in_it){
       #check all columns "region", "x"(longitude) , "y"(latitude) present and character/numeric/numeric
-      #if colour not present, auto-fill and
-      if( is.null(in_it$col) ){ # No colours provided --- assign!
-        warning("No colour column in info_table provided. Colour will be manually added.")
-        in_it[ , col := replace_levels_with_colours(region) ]
+      if( !is.data.table(in_it) ){
+        stop("Info table must be a data.table")
+      }
+      if( any(!c("region","x","y") %in% colnames(in_it) ) ){
+        stop("Info table must have all( c(\"regions\",\"x\",\"y\") %in% colnames(.) )")
+      }
+      if( !all(unique(colnames(private$dm)) %in% in_it$region) ){
+        stop("All regions present in distance matrix must have entries in the info table.")
       }
     },
     raw_out = data.table(), #raw output from sampling
