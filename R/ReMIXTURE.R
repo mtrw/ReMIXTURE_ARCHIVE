@@ -227,7 +227,7 @@ ReMIXTURE <- R6::R6Class(
       cnormed <- data.table::copy(private$counts)[,prop:=count/sum(count),by=.(p1)]
       cnormed<-cnormed[p1!=p2][order(prop)]
 
-      coords<-fread("geo_centres.csv",col.names=c("region","x","y","col")) ## we need to fix this.
+      coords<-private$it
       coords[,size:=counts[p1==region & p2==region]$count,by=region]
       coords[,size:=size %>% scale_between(2,7)]
       coords <- coords[!is.na(size)]
