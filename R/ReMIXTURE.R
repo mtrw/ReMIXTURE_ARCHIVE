@@ -71,20 +71,23 @@ null_plot <- function(x,y,xlab=NA,ylab=NA,...){
 
 #' ReMixture
 #'
-#' Says the name of the intended future of this package
+#' Regionwise similarity analysis using a resampled nearest-neighbour method.
 #'
 #' @section Warning:
-#' Does nothing interesting.
+#' Under development.
 #'
-#' @param x Anything printable.
-#' @return Nothing. Just prints nothing interesting.
-#' @examples
-#' print("Hello!")
+#' @return A ReMIXTURE class object.
 #' @export
 ReMIXTURE <- R6::R6Class(
 
   ################# Public ################
   public = list(
+    #' @description
+    #' Create a new ReMIXTURE object.
+    #' @param distance_matrix An all-vs-all, full numeric distance matrix, with rownames and
+    #'      colnames giving the region of origin of the corresponding individual.
+    #' @param info_table A data.table rescribing the lat(y)/long(x)s of each region, with columns named "region", "x", "y", and optionally "col", to give a HEX colour to each region.
+    #' @return a new `ReMIXTURE`` object.
     initialize = function(distance_matrix,info_table=NULL){ #constructor, overrides self$new
       #browser()
 
@@ -122,7 +125,11 @@ ReMIXTURE <- R6::R6Class(
     },
 
 
-
+    #' @description
+    #' Run the ReMIXTURE analysis. Requires the information table to have been provided upon initialisation or later with $info_table().
+    #' @param iterations The number of samplings requested.
+    #' @param resample If TRUE, will resample the iterations to establish variance in the results.
+    #' @return A sense of profound satisfaction.
     run = function(iterations=1000, resample=F){
       #run the method to fill private$counts (define this somewhere else for clarity and call it here)
       # if resample==T, then run the resampling stuff too
@@ -175,7 +182,7 @@ ReMIXTURE <- R6::R6Class(
       private$raw_out[,idx:=1:.N,by=.(p1)]
 
       if (resample){
-        samplesize <- nu(private$raw_out$iteration)*0.1 #SET: How many items to sample each time
+        samplesize <- nu(private$raw_out$iteration)*0.9 #SET: How many items to sample each time
         nrowsit <- (nu(private$raw_out$p1)**2)
         nrowsout <- nrowsit*iterations
         #to store output
