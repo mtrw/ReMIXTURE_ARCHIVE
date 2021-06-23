@@ -69,7 +69,7 @@ null_plot <- function(x,y,xlab=NA,ylab=NA,...){
 ###################################################################################################################################
 
 
-#' ReMixture
+#' ReMIXTURE
 #'
 #' Regionwise similarity analysis using a resampled nearest-neighbour method.
 #'
@@ -218,7 +218,9 @@ ReMIXTURE <- R6::R6Class(
 
 
 
-
+    #' @description
+    #' Plot the heatmap of RGOs. Requires that $run() has been called.
+    #' @return A ggplot2 plot object.
     plot_heatmap = function(){
       #produce plots
       cnormed <- data.table::copy(private$counts)[,prop:=count/sum(count),by=.(p1)]
@@ -231,7 +233,9 @@ ReMIXTURE <- R6::R6Class(
 
 
 
-
+    #' @description
+    #' Plot all inter-region RGOs on a map. Requires that $run() has been called.
+    #' @return A pheatmap::heatmap object
     plot_maps = function(){
             #produce plots
       cnormed <- data.table::copy(private$counts)[,prop:=count/sum(count),by=.(p1)]
