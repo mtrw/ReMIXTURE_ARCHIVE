@@ -57,7 +57,6 @@ ReMIXTURE <- R6::R6Class(
 
 
       private$dm <- distance_matrix
-      private$dm <- fill_lower_from_upper(private$dm)
 
     },
 
@@ -122,40 +121,48 @@ ReMIXTURE <- R6::R6Class(
 
 
       if (resample){
-        samplesize <- nu(private$raw_out$iteration)*0.9 #SET: How many items to sample each time
-        nrowsit <- (nu(private$raw_out$p1)**2)
-        nrowsout <- nrowsit*iterations
-        #to store output
-        itcount <- data.table::data.table(
-          p1=character(length=nrowsout),
-          p2=character(length=nrowsout),
-          count=numeric(length=nrowsout),
-          resamp=numeric(length=nrowsout)
-        )
-
-        #perform resampling
-        for(it in 1:iterations){
-          #it <- 1
-          ce("It: ",it)
-          selectit <- sample(unique(private$raw_out$iteration),samplesize)
-
-          fill <- data.table::setDT(expand.grid(p1=unique(private$raw_out$p1),p2=unique(private$raw_out$p2)))
-          insert <- private$raw_out[ iteration %in% selectit , .(count=.N,resamp=it) , by=.(p1,p2) ]
-          insert <- insert[fill,on=.(p1,p2)]
-          insert[is.na(count),count:=0]
-          insert[is.na(resamp),resamp:=it]
-
-          itcount[(nrowsit*(it-1)+1):((nrowsit*(it-1))+nrow(insert))] <- insert
-        }
-
-        #summarise output
-        itcount[, pct:=(count/sum(count))*100 , by=.(resamp,p1) ]
-        itcount <- itcount[, .(sd_pct=sd(pct),mean_pct=mean(pct)) , by=.(p1,p2) ]
-        itcount[, description:=paste0( round(mean_pct-(2*sd_pct),digits=2)," (",round(mean_pct,digits=2),") ",round(mean_pct+(2*sd_pct),digits=2)  )  ]
-        private$resample <- itcount
+        self$run_resampling(iterations=iterations)
       }
     },
+    #' @description
+    #' Run the resampling of ReMIXTURE analysis results. Requires the information table to have been provided upon initialisation or later with $info_table().
+    #' @param iterations The number of samplings requested.
+    #' @param qualifier Float number between 0 and 1, which states how many samples to retrieve from every iteration.
+    #' @return A sense of profound satisfaction.
+    run_resampling = function(iterations=1000, qualifier = 0.9){
 
+      samplesize <- nu(private$raw_out$iteration)*qualifier #SET: How many items to sample each time
+      nrowsit <- (nu(private$raw_out$p1)**2)
+      nrowsout <- nrowsit*iterations
+      #to store output
+      itcount <- data.table::data.table(
+        p1=character(length=nrowsout),
+        p2=character(length=nrowsout),
+        count=numeric(length=nrowsout),
+        resamp=numeric(length=nrowsout)
+      )
+
+      #perform resampling
+      for(it in 1:iterations){
+        #it <- 1
+        ce("It: ",it)
+        selectit <- sample(unique(private$raw_out$iteration),samplesize)
+
+        fill <- data.table::setDT(expand.grid(p1=unique(private$raw_out$p1),p2=unique(private$raw_out$p2)))
+        insert <- private$raw_out[ iteration %in% selectit , .(count=.N,resamp=it) , by=.(p1,p2) ]
+        insert <- insert[fill,on=.(p1,p2)]
+        insert[is.na(count),count:=0]
+        insert[is.na(resamp),resamp:=it]
+
+        itcount[(nrowsit*(it-1)+1):((nrowsit*(it-1))+nrow(insert))] <- insert
+      }
+
+      #summarise output
+      itcount[, pct:=(count/sum(count))*100 , by=.(resamp,p1) ]
+      itcount <- itcount[, .(sd_pct=sd(pct),mean_pct=mean(pct)) , by=.(p1,p2) ]
+      itcount[, description:=paste0( round(mean_pct-(2*sd_pct),digits=2)," (",round(mean_pct,digits=2),") ",round(mean_pct+(2*sd_pct),digits=2)  )  ]
+      private$resample <- itcount
+    },
 
     #' @description
     #' Plot the heatmap of RGOs. Requires that $run() has been called.
@@ -251,7 +258,7 @@ ReMIXTURE <- R6::R6Class(
     },
     validate_it = function(in_it){
       #check all columns "region", "x"(longitude) , "y"(latitude) present and character/numeric/numeric
-      if( !is.data.table(in_it) ){
+      if( !data.table::is.data.table(in_it) ){
         stop("Info table must be a data.table")
       }
       if( any(!c("region","x","y") %in% colnames(in_it) ) ){
@@ -279,6 +286,13 @@ ReMIXTURE <- R6::R6Class(
         warning("Distance matrix cannot be set after initialisation")
       }
     },
+    resample_matrix = function(resample){
+      if (missing(resample)){
+        private$resample
+      } else {
+        warning("Resample matrix cannot be modified manually")
+      }
+    },
     info_table = function(in_it){
       if(missing(in_it)){
         return(private$it)
@@ -292,6 +306,7 @@ ReMIXTURE <- R6::R6Class(
         private$it <- in_it
       }
     }
+
   )
 )
 
